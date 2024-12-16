@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
@@ -59,4 +60,7 @@ def update_event():
     return jsonify({"error": "Event not found"}), 404
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Get the port from the environment variable or use default port 5000
+    port = int(os.environ.get('PORT', 5000))
+    # Run the app on 0.0.0.0 with the specified port
+    app.run(host='0.0.0.0', port=port)
