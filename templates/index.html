@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSS Club Events Calendar</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+
+<body>
+    <h1>NSS Club Events Calendar</h1>
+
+    <div class="calendar-container">
+        <div class="month-header">
+            <button id="prev-month">&#9664; Previous</button>
+            <h2 id="month-name"></h2>
+            <button id="next-month">Next &#9654;</button>
+        </div>
+        <div id="calendar" class="calendar"></div>
+    </div>
+
+    <!-- Events List Section -->
+    <div id="events-list">
+        <h3>Events for the Month:</h3>
+        <ul id="events-ul"></ul>
+    </div>
+
+    <button id="edit-button" style="display: none;">Edit Event</button>
+
+    <form id="event-form" style="display: none;">
+        <input type="text" id="event-title" placeholder="Event Title" required>
+        <input type="date" id="event-date" required>
+        <textarea id="event-description" placeholder="Event Description" required></textarea>
+        <input type="password" id="admin-code" placeholder="Admin Code" required>
+        <button type="submit">Add Event</button>
+    </form>
+
+    <script>
+        const calendar = document.getElementById("calendar");
+        const monthName = document.getElementById("month-name");
+        const prevMonthBtn = document.getElementById("prev-month");
+        const nextMonthBtn = document.getElementById("next-month");
+        const eventForm = document.getElementById("event-form");
+        const editButton = document.getElementById("edit-button");
+        const eventsList = document.getElementById("events-ul");
+
+        let currentMonth = new Date().getMonth();
+        const monthNames = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+
+        async function fetchEvents() {
+            const response = await fetch('/get_events');
+            return response.json();
+        }
+
+        async function generateCalendar(month) {
+            calendar.innerHTML = "";
+            monthName.textContent = `${monthNames[month]}`;
+            const events = await fetchEvents();
+
+            // Add headers for days of the week
+            const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            daysOfWeek.forEach(day => {
+                calendar.innerHTML += `<div class='day-header'>${day}</div>`;
+            });
+
+            // Add days and events
+            const firstDay = new Date(new Date().getFullYear(), month, 1).getDay();
+            const daysInMonth = new Date(new Date().getFullYear(), month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+                calendar.innerHTML += `<div class='day'></div>`;
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateKey = `2024-${month + 1}-${day}`;
+                let eventsHTML = "";
+
+                if (events[dateKey]) {
+                    events[dateKey].forEach((event, index) => {
+                        eventsHTML += `<div class='event' onclick='showEventDetails("${dateKey}", ${index})'>${event.title}</div>`;
+                    });
+                }
+
+                calendar.innerHTML += `<div class='day' id='day-${dateKey}'>
+                    <strong>${day}</strong>
+                    ${eventsHTML}
+                </div>`;
+            }
+        }
+
+        async function showEventDetails(date, index) {
+            const events = await fetchEvents();
+            const event = events[date][index];
+            alert(`Event: ${event.title}\nDescription: ${event.description}`);
+        }
+
+        function handleEditClick() {
+            const adminCode = prompt("Enter Admin Code:");
+
+            if (adminCode === "Admin1098") {
+                alert("You are authorized to edit the event.");
+                editButton.style.display = "none"; // Hide edit button after admin verifies
+                eventForm.style.display = "block"; // Show event form to add/edit events
+            } else {
+                alert("Unauthorized. Admin code is incorrect.");
+            }
+        }
+
+        async function submitEventForm(e) {
+            e.preventDefault();
+
+            const eventTitle = document.getElementById('event-title').value;
+            const eventDate = document.getElementById('event-date').value;
+            const eventDescription = document.getElementById('event-description').value;
+            const adminCode = document.getElementById('admin-code').value;
+
+            const eventData = {
+                event_title: eventTitle,
+                date: eventDate,
+                event_description: eventDescription,
+                admin_code: adminCode
+            };
+
+            const response = await fetch('/add_event', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(eventData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert("Event added successfully");
+                generateCalendar(currentMonth); // Reload calendar after adding event
+                updateEventsList(); // Update the event list for the current month
+            } else {
+                alert(result.error || "Error adding event");
+            }
+        }
+
+        async function updateEventsList() {
+            const events = await fetchEvents();
+            const monthKey = `${2024}-${currentMonth + 1}`;
+            const monthEvents = [];
+
+            for (const date in events) {
+                if (date.startsWith(monthKey)) {
+                    events[date].forEach(event => {
+                        monthEvents.push(`${event.title}: ${event.description}`);
+                    });
+                }
+            }
+
+            // Clear current list
+            eventsList.innerHTML = '';
+
+            // Populate events list for the current month
+            monthEvents.forEach(event => {
+                const li = document.createElement('li');
+                li.textContent = event;
+                eventsList.appendChild(li);
+            });
+        }
+
+        prevMonthBtn.addEventListener("click", () => {
+            currentMonth = (currentMonth - 1 + 12) % 12;
+            generateCalendar(currentMonth);
+            updateEventsList();
+        });
+
+        nextMonthBtn.addEventListener("click", () => {
+            currentMonth = (currentMonth + 1) % 12;
+            generateCalendar(currentMonth);
+            updateEventsList();
+        });
+
+        // Show the calendar and events list on page load
+        generateCalendar(currentMonth);
+        updateEventsList();
+
+        // Show edit button for admins
+        editButton.style.display = "block";
+        editButton.addEventListener("click", handleEditClick);
+
+        // Event form submission
+        eventForm.addEventListener('submit', submitEventForm);
+
+    </script>
+</body>
+
+</html>
