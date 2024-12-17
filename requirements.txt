@@ -1,4 +1,6 @@
 Flask==3.0.3
 gunicorn==20.1.0
 flask-sqlalchemy
+flask-cors
+
 
