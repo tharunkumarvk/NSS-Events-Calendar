@@ -1,7 +1,3 @@
-const API_URL = "http://127.0.0.1:5000"; // Use this exact URL
-const ADMIN_PASSWORD = "admin123";
-let currentMonth = new Date().getMonth();
-
 const calendar = document.getElementById("calendar");
 const monthName = document.getElementById("month-name");
 const eventListContainer = document.getElementById("events-container");
@@ -14,31 +10,9 @@ const addEventOptions = document.getElementById("add-event-options");
 const editEventBtn = document.getElementById("edit-event");
 const deleteEventBtn = document.getElementById("delete-event");
 const addEventBtn = document.getElementById("add-event");
-
-let events = {}; // This will now be populated from the backend
-
-// Fetch events for the current month
-async function fetchEvents(month) {
-    try {
-        const response = await fetch(`${API_URL}/events/${month}`);
-        const monthEvents = await response.json();
-        
-        // Reset events and populate with backend data
-        events = {};
-        monthEvents.forEach(event => {
-            const key = `${event.day}-${event.month}`;
-            events[key] = {
-                id: event.id,
-                title: event.title,
-                description: event.description
-            };
-        });
-        
-        generateCalendar(month);
-    } catch (error) {
-        console.error("Error fetching events:", error);
-    }
-}
+let currentMonth = new Date().getMonth(); // Start from current month
+let events = {};
+const ADMIN_PASSWORD = "admin123";
 
 // Generates the calendar for the given month
 function generateCalendar(month) {
@@ -72,8 +46,8 @@ function showModal(day, month) {
         if (password === ADMIN_PASSWORD) {
             adminOptions.style.display = "block";
             addEventOptions.style.display = "none";
-            editEventBtn.onclick = () => editEvent(key, event.id);
-            deleteEventBtn.onclick = () => deleteEvent(key, event.id);
+            editEventBtn.onclick = () => editEvent(key);
+            deleteEventBtn.onclick = () => deleteEvent(key);
         } else {
             adminOptions.style.display = "none";
             addEventOptions.style.display = "none";
@@ -81,143 +55,74 @@ function showModal(day, month) {
     } else {
         adminOptions.style.display = "none";
         addEventOptions.style.display = "block";
-        addEventBtn.onclick = () => addEvent(day, month);
+        addEventBtn.onclick = () => addEvent(key);
     }
 }
 
-// Updates the upcoming events list based on the current month
-function updateEventList(month) {
-    eventListContainer.innerHTML = "";
-    for (const key in events) {
-        const [day, eventMonth] = key.split("-");
-        if (parseInt(eventMonth) === month) {
-            const event = events[key];
-            eventListContainer.innerHTML += `
-                <div class="event-item">
-                    <h4>${event.title}</h4>
-                    <p><strong>Date:</strong> ${new Date(2024, eventMonth, day).toLocaleDateString()}</p>
-                    <p><strong>Description:</strong> ${event.description}</p>
-                </div>
-            `;
-        }
-    }
-}
+// Adds an event to the selected day
+function addEvent(key) {
+    const title = prompt("Event Title:");
+    const description = prompt("Event Description:");
 
-// Add event
-async function addEvent(day, month) {
-    const password = prompt("Enter Admin Password to Add Event:");
-    if (password === ADMIN_PASSWORD) {
-        const title = prompt("Enter Event Title:");
-        const description = prompt("Enter Event Description:");
-        
-        if (title && description) {
-            try {
-                const response = await fetch(`${API_URL}/events`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Admin-Password': ADMIN_PASSWORD
-                    },
-                    body: JSON.stringify({
-                        day: day,
-                        month: month,
-                        title: title,
-                        description: description
-                    })
-                });
-
-                if (response.ok) {
-                    alert("Event added successfully!");
-                    modal.style.display = "none";
-                    fetchEvents(currentMonth);
-                } else {
-                    const errorData = await response.json();
-                    alert(`Error: ${errorData.error}`);
-                }
-            } catch (error) {
-                console.error("Error adding event:", error);
-                alert("Failed to add event");
-            }
-        }
-    } else {
-        alert("Incorrect Admin Password.");
-    }
-}
-
-// Edit event
-async function editEvent(key, eventId) {
-    const event = events[key];
-    const title = prompt("Edit Event Title:", event.title);
-    const description = prompt("Edit Event Description:", event.description);
-    
     if (title && description) {
-        try {
-            const response = await fetch(`${API_URL}/events/${eventId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Admin-Password': ADMIN_PASSWORD
-                },
-                body: JSON.stringify({
-                    title: title,
-                    description: description
-                })
-            });
-
-            if (response.ok) {
-                alert("Event updated successfully!");
-                modal.style.display = "none";
-                fetchEvents(currentMonth);
-            } else {
-                const errorData = await response.json();
-                alert(`Error: ${errorData.error}`);
-            }
-        } catch (error) {
-            console.error("Error editing event:", error);
-            alert("Failed to edit event");
-        }
+        events[key] = { title, description };
+        generateCalendar(currentMonth);
+        alert("Event added successfully!");
     }
 }
 
-// Delete event
-async function deleteEvent(key, eventId) {
-    if (confirm("Are you sure you want to delete this event?")) {
-        try {
-            const response = await fetch(`${API_URL}/events/${eventId}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-Admin-Password': ADMIN_PASSWORD
-                }
-            });
+// Edits the selected event
+function editEvent(key) {
+    const event = events[key];
+    const newTitle = prompt("Edit Event Title:", event.title);
+    const newDescription = prompt("Edit Event Description:", event.description);
 
-            if (response.ok) {
-                alert("Event deleted successfully!");
-                modal.style.display = "none";
-                fetchEvents(currentMonth);
-            } else {
-                const errorData = await response.json();
-                alert(`Error: ${errorData.error}`);
-            }
-        } catch (error) {
-            console.error("Error deleting event:", error);
-            alert("Failed to delete event");
-        }
+    if (newTitle && newDescription) {
+        events[key] = { title: newTitle, description: newDescription };
+        generateCalendar(currentMonth);
+        alert("Event updated successfully!");
     }
 }
 
-closeModal.onclick = () => (modal.style.display = "none");
+// Deletes the selected event
+function deleteEvent(key) {
+    delete events[key];
+    generateCalendar(currentMonth);
+    alert("Event deleted successfully!");
+}
 
-// Previous month button logic (wraps around to December if January is selected)
-document.getElementById("prev-month").onclick = () => {
-    currentMonth = (currentMonth === 0) ? 11 : currentMonth - 1; // Loop back to December if it's January
-    fetchEvents(currentMonth);
-};
+// Closes the modal
+closeModal.onclick = function() {
+    modal.style.display = "none";
+}
 
-// Next month button logic (wraps around to January if December is selected)
-document.getElementById("next-month").onclick = () => {
-    currentMonth = (currentMonth === 11) ? 0 : currentMonth + 1; // Loop back to January if it's December
-    fetchEvents(currentMonth);
-};
+// Updates the upcoming events list
+function updateEventList(month) {
+    const eventsThisMonth = Object.keys(events).filter(key => key.includes(`-${month}`));
+    eventListContainer.innerHTML = "";
 
-// Initial events fetch
-fetchEvents(currentMonth);
+    eventsThisMonth.forEach(key => {
+        const event = events[key];
+        eventListContainer.innerHTML += `
+            <div class="event-item">
+                <h4>${event.title}</h4>
+                <p>${event.description}</p>
+            </div>
+        `;
+    });
+}
+
+// Navigation between months
+document.getElementById("prev-month").addEventListener("click", () => {
+    currentMonth--;
+    if (currentMonth < 0) currentMonth = 11;
+    generateCalendar(currentMonth);
+});
+document.getElementById("next-month").addEventListener("click", () => {
+    currentMonth++;
+    if (currentMonth > 11) currentMonth = 0;
+    generateCalendar(currentMonth);
+});
+
+// Initialize calendar for the current month
+generateCalendar(currentMonth);

@@ -1,156 +1,178 @@
-/* General Styles */
-body {
-    font-family: Arial, sans-serif;
+/* Global Reset */
+* {
     margin: 0;
     padding: 0;
-    background-color: #f4f4f9;
-    color: #333;
+    box-sizing: border-box;
 }
-
-h1 {
+body {
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(to right, #00b09b, #96c93d);
+    color: white;
     text-align: center;
-    margin: 20px 0;
-    color: #0078d4;
-}
-
-/* Calendar Container */
-.calendar-container {
-    max-width: 800px;
-    margin: 20px auto;
-    background: #fff;
     padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
-
+h1 {
+    font-size: 36px;
+    margin-top: 20px;
+}
+.calendar-container {
+    margin: 40px auto;
+    width: 90%;
+    max-width: 900px;
+    background-color: #fff;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
 .month-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    background-color: #2c3e50;
+    color: white;
+    padding: 20px;
 }
-
-#month-name {
-    font-size: 1.5em;
-    color: #444;
-}
-
-button {
-    background-color: #0078d4;
+.month-header button {
+    background-color: #34495e;
     color: white;
     border: none;
     padding: 10px 15px;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 1em;
+    font-size: 16px;
 }
-
-button:hover {
-    background-color: #005bb5;
-}
-
-/* Calendar Grid */
-#calendar {
+.calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 5px;
-    text-align: center;
-}
-
-.day-header {
-    font-weight: bold;
-    padding: 10px 0;
-    background-color: #0078d4;
-    color: white;
-    border-radius: 5px;
-}
-
-.day {
+    background-color: #ecf0f1;
     padding: 10px;
-    background-color: #f9f9f9;
-    border-radius: 5px;
-    border: 1px solid #e3e3e3;
-    min-height: 80px;
-    position: relative;
 }
-
-.day strong {
-    display: block;
-    margin-bottom: 5px;
+.day, .day-header {
+    padding: 20px;
+    text-align: center;
+    border-radius: 10px;
 }
-
-.day:hover {
-    background-color: #f1f1f1;
+.day-header {
+    background-color: #2c3e50;
+    color: white;
+    font-weight: bold;
+}
+.day {
+    background-color: #f5f5f5;
+    color: #333;
     cursor: pointer;
 }
-
-.event {
-    background-color: #0078d4;
+.day:hover {
+    background-color: #f39c12;
     color: white;
-    padding: 2px 5px;
-    margin: 5px 0;
-    border-radius: 3px;
-    font-size: 0.85em;
 }
-
-/* Form Styles */
-#event-form {
-    max-width: 800px;
-    margin: 20px auto;
-    background: #fff;
+.event {
+    background-color: #e74c3c;
+    color: white;
+    padding: 5px;
+    border-radius: 5px;
+    margin-top: 5px;
+    font-size: 12px;
+}
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+}
+.modal-content {
+    background-color: #fff;
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    width: 400px;
+    text-align: center;
+    color: #333;
+    position: relative;
 }
-
-#event-form input,
-#event-form textarea,
-#event-form button {
-    width: 100%;
+.modal-content button {
+    margin-top: 10px;
     padding: 10px;
-    border: 1px solid #e3e3e3;
+    border: none;
     border-radius: 5px;
-    font-size: 1em;
-}
-
-#event-form input:focus,
-#event-form textarea:focus,
-#event-form button:focus {
-    outline: none;
-    border-color: #0078d4;
-}
-
-#event-form textarea {
-    resize: none;
-    min-height: 80px;
-}
-
-#event-form button {
-    background-color: #0078d4;
+    background-color: #2c3e50;
     color: white;
     cursor: pointer;
+}
+.close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 20px;
+    cursor: pointer;
+    color: #aaa;
+}
+
+/* Upcoming Events Styling */
+.event-list {
+    margin-top: 30px;
+    text-align: left;
+    color: black;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.event-list h3 {
+    font-size: 28px;
+    margin-bottom: 10px;
+    color: #2c3e50;
+    text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Animation and Color Styling for Event Items */
+.event-item {
+    background-color: #fff;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.event-item h4 {
+    margin: 0;
+    font-size: 22px;
     font-weight: bold;
+    color: #2c3e50;
 }
 
-#event-form button:hover {
-    background-color: #005bb5;
+.event-item p {
+    font-size: 14px;
+    color: #555;
 }
 
-/* Responsive Design */
-@media (max-width: 600px) {
-    .calendar-container {
-        padding: 10px;
-    }
+/* Adding a unique color for each event type */
+.event-item:nth-child(odd) {
+    background-color: #f9e1e1;
+}
+.event-item:nth-child(even) {
+    background-color: #e1f7f1;
+}
 
-    .month-header {
-        flex-direction: column;
-        gap: 10px;
+/* Fade-in animation */
+@keyframes fadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
     }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 
-    #event-form {
-        padding: 10px;
-    }
+/* Event hover effect */
+.event-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
 }

@@ -1,116 +1,96 @@
-import os
-from flask import Flask, request, jsonify, render_template, send_from_directory
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
+import json
 import os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///events.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
 CORS(app)
 
-# Event Model
-class Event(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    day = db.Column(db.Integer, nullable=False)
-    month = db.Column(db.Integer, nullable=False)
-    title = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text, nullable=False)
+EVENTS_FILE = 'events.json'
 
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'day': self.day,
-            'month': self.month,
-            'title': self.title,
-            'description': self.description
-        }
+def load_events():
+    """Load events from JSON file."""
+    if os.path.exists(EVENTS_FILE):
+        with open(EVENTS_FILE, 'r') as f:
+            return json.load(f)
+    return {}
 
-# Ensure database is created
-with app.app_context():
-    db.create_all()
+def save_events(events):
+    """Save events to JSON file."""
+    with open(EVENTS_FILE, 'w') as f:
+        json.dump(events, f, indent=4)
 
-# Serve the HTML frontend
 @app.route('/')
 def index():
+    """Render the main HTML page."""
     return render_template('index.html')
 
-# Serve static files
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    root_dir = os.path.dirname(os.getcwd())
-    return send_from_directory(os.path.join(root_dir, 'nss-calender', 'static'), filename)
+@app.route('/events', methods=['GET'])
+def get_events():
+    """Retrieve all events."""
+    events = load_events()
+    return jsonify(events)
 
-# Get events for a specific month
-@app.route('/events/<int:month>', methods=['GET'])
-def get_events(month):
-    events = Event.query.filter_by(month=month).all()
-    return jsonify([event.to_dict() for event in events])
-
-# Add a new event
 @app.route('/events', methods=['POST'])
 def add_event():
+    """Add a new event."""
     data = request.json
-    admin_password = request.headers.get('X-Admin-Password')
+    password = data.get('password')
     
-    if admin_password != 'admin123':
-        return jsonify({'error': 'Unauthorized'}), 401
+    if password != 'admin123':
+        return jsonify({"error": "Unauthorized"}), 401
     
-    new_event = Event(
-        day=data['day'],
-        month=data['month'],
-        title=data['title'],
-        description=data['description']
-    )
+    events = load_events()
+    key = data.get('key')
+    title = data.get('title')
+    description = data.get('description')
     
-    try:
-        db.session.add(new_event)
-        db.session.commit()
-        return jsonify(new_event.to_dict()), 201
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 400
+    if key and title and description:
+        events[key] = {
+            "title": title,
+            "description": description
+        }
+        save_events(events)
+        return jsonify({"message": "Event added successfully"}), 201
+    
+    return jsonify({"error": "Invalid event data"}), 400
 
-# Edit an existing event
-@app.route('/events/<int:event_id>', methods=['PUT'])
-def edit_event(event_id):
-    admin_password = request.headers.get('X-Admin-Password')
-    
-    if admin_password != 'admin123':
-        return jsonify({'error': 'Unauthorized'}), 401
-    
-    event = Event.query.get_or_404(event_id)
+@app.route('/events/<key>', methods=['PUT'])
+def update_event(key):
+    """Update an existing event."""
     data = request.json
+    password = data.get('password')
     
-    event.title = data.get('title', event.title)
-    event.description = data.get('description', event.description)
+    if password != 'admin123':
+        return jsonify({"error": "Unauthorized"}), 401
     
-    try:
-        db.session.commit()
-        return jsonify(event.to_dict())
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 400
+    events = load_events()
+    
+    if key in events:
+        events[key]['title'] = data.get('title', events[key]['title'])
+        events[key]['description'] = data.get('description', events[key]['description'])
+        save_events(events)
+        return jsonify({"message": "Event updated successfully"}), 200
+    
+    return jsonify({"error": "Event not found"}), 404
 
-# Delete an event
-@app.route('/events/<int:event_id>', methods=['DELETE'])
-def delete_event(event_id):
-    admin_password = request.headers.get('X-Admin-Password')
+@app.route('/events/<key>', methods=['DELETE'])
+def delete_event(key):
+    """Delete an event."""
+    data = request.json
+    password = data.get('password')
     
-    if admin_password != 'admin123':
-        return jsonify({'error': 'Unauthorized'}), 401
+    if password != 'admin123':
+        return jsonify({"error": "Unauthorized"}), 401
     
-    event = Event.query.get_or_404(event_id)
+    events = load_events()
     
-    try:
-        db.session.delete(event)
-        db.session.commit()
-        return '', 204
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 400
+    if key in events:
+        del events[key]
+        save_events(events)
+        return jsonify({"message": "Event deleted successfully"}), 200
+    
+    return jsonify({"error": "Event not found"}), 404
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(debug=True)
