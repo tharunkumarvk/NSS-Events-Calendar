@@ -2,24 +2,27 @@ import os
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import json
-import os
+import threading
 
 app = Flask(__name__)
 CORS(app)
 
+# Centralized JSON file for storage
 EVENTS_FILE = 'events.json'
+lock = threading.Lock()  # Prevent concurrent write issues
 
 def load_events():
-    """Load events from JSON file."""
+    """Load events from the JSON file."""
     if os.path.exists(EVENTS_FILE):
         with open(EVENTS_FILE, 'r') as f:
             return json.load(f)
     return {}
 
 def save_events(events):
-    """Save events to JSON file."""
-    with open(EVENTS_FILE, 'w') as f:
-        json.dump(events, f, indent=4)
+    """Save events to the JSON file."""
+    with lock:
+        with open(EVENTS_FILE, 'w') as f:
+            json.dump(events, f, indent=4)
 
 @app.route('/')
 def index():
@@ -40,13 +43,16 @@ def add_event():
     
     if password != 'admin123':
         return jsonify({"error": "Unauthorized"}), 401
-    
+
     events = load_events()
     key = data.get('key')
     title = data.get('title')
     description = data.get('description')
-    
+
     if key and title and description:
+        if key in events:
+            return jsonify({"error": "Event with this key already exists"}), 400
+        
         events[key] = {
             "title": title,
             "description": description
@@ -64,9 +70,9 @@ def update_event(key):
     
     if password != 'admin123':
         return jsonify({"error": "Unauthorized"}), 401
-    
+
     events = load_events()
-    
+
     if key in events:
         events[key]['title'] = data.get('title', events[key]['title'])
         events[key]['description'] = data.get('description', events[key]['description'])
@@ -83,9 +89,9 @@ def delete_event(key):
     
     if password != 'admin123':
         return jsonify({"error": "Unauthorized"}), 401
-    
+
     events = load_events()
-    
+
     if key in events:
         del events[key]
         save_events(events)
@@ -94,4 +100,7 @@ def delete_event(key):
     return jsonify({"error": "Event not found"}), 404
 
 if __name__ == '__main__':
+    # Initialize an empty JSON file if it doesn't exist
+    if not os.path.exists(EVENTS_FILE):
+        save_events({})
     app.run(host='0.0.0.0', port=5050, debug=False)
